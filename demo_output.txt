@@ -1,0 +1,199 @@
+﻿
+======================================================================
+  STEP 1: DATA INGESTION
+======================================================================
+Reading: data/sample_candidates.csv
+
+
+Result: 6 candidates parsed
+
+  ID       Name                 Email                          Answers  GitHub
+  -------- -------------------- ------------------------------ -------- --------------------
+  c001     Arjun Mehta          arjun.mehta@email.com          3        ...github.com/arjunm
+  c002     Priya Sharma         priya.s@email.com              3        (none)
+  c003     Ravi Kumar           ravi.kumar.dev@email.com       3        ....com/ravikumar404
+  c004     Sneha Patel          sneha.p@email.com              3        ...ub.com/snehap-dev
+  c005     Anonymous User                                      3        (none)
+  c006     Mike Chen            mike.chen.ai@email.com         3        ...b.com/mikechen-ml
+
+  Deduplication: 7 rows in CSV -> 6 unique candidates
+  (c007 'Test Candidate' was a duplicate of c002 'Priya Sharma' - same email+role)
+
+======================================================================
+  STEP 2: CANDIDATE SCORING
+======================================================================
+Scoring each candidate across 5 dimensions...
+
+  Weights: {"technical_relevance": 0.3, "answer_quality": 0.25, "profile_credibility": 0.2, "specificity": 0.15, "timing": 0.1}
+
+  Rank  Name                   Score Tier          Tech  Qual  Prof  Spec  Time
+  ----- -------------------- ------- ------------ ----- ----- ----- ----- -----
+  #1    Arjun Mehta            91.12 Fast-Track     100    86    85    95    85
+  #2    Sneha Patel            88.35 Fast-Track      97    84    85    85    85
+  #3    Mike Chen              83.40 Standard        93    82    65    90    85
+  #4    Ravi Kumar             64.21 Review          65    83    25    70    85
+  #5    Priya Sharma           40.79 Reject          35    61    55     0    40
+  #6    Anonymous User          3.64 Reject          10    15    35    60    15
+
+----------------------------------------------------------------------
+  WHY #1 SCORED HIGH (Arjun Mehta)
+----------------------------------------------------------------------
+  + Rank: #1 of 6
+  + Found 18 technical terms: accuracy, agent, async, flink, kafka, pipeline, precision, rag, reranker, throughput
+  + Mentions specific versions/numbers: shows precision
+  + GitHub profile provided: https://github.com/arjunm
+  + LinkedIn profile provided
+  + Contains specific percentages (5 instances)
+
+----------------------------------------------------------------------
+  WHY #6 SCORED LOW (Anonymous User)
+----------------------------------------------------------------------
+  - Rank: #6 of 6
+  - Found 0 technical terms: 
+  - Q 'q1': Extremely short (3 words)
+  - Q 'q2': Extremely short (1 words)
+  - Q 'q3': Extremely short (1 words)
+  - No GitHub profile provided
+  FLAGS: MISSING_EMAIL, ALL_MINIMAL_ANSWERS
+
+======================================================================
+  STEP 3: ANTI-CHEAT DETECTION
+======================================================================
+Running 3 detection phases...
+
+----------------------------------------------------------------------
+  Phase 1: AI-Generated Text Detection
+----------------------------------------------------------------------
+  Arjun Mehta          -> likely_human   (probability: 0.060) [ok]
+  Priya Sharma         -> likely_human   (probability: 0.200) [ok]
+  Ravi Kumar           -> likely_human   (probability: 0.060) [ok]
+  Sneha Patel          -> likely_human   (probability: 0.060) [ok]
+  Anonymous User       -> likely_human   (probability: 0.000) [ok]
+  Mike Chen            -> likely_human   (probability: 0.060) [ok]
+
+----------------------------------------------------------------------
+  Phase 2: Cross-Candidate Similarity
+----------------------------------------------------------------------
+  Method: tfidf
+  !!! Arjun Mehta <-> Ravi Kumar
+      Question: q1, Similarity: 1.0000
+      A: "I'm particularly drawn to the intersection of autonomous agents and real-world s..."
+      B: ""I'm particularly drawn to the intersection of autonomous agents and real-world ..."
+
+
+----------------------------------------------------------------------
+  Phase 3: Timing Anomaly Detection
+----------------------------------------------------------------------
+  ok Arjun Mehta             85s -> normal
+  !! Priya Sharma            15s -> Typed 6.9 words/sec ΓÇö faster than average typing
+  ok Ravi Kumar             180s -> normal
+  ok Sneha Patel            120s -> normal
+  !! Anonymous User           3s -> Response in 3.0s ΓÇö likely copy-paste
+  ok Mike Chen               95s -> normal
+
+======================================================================
+  STEP 4: EMAIL ENGAGEMENT (Simulated)
+======================================================================
+Deciding who to email based on tier...
+
+  EMAIL Arjun Mehta          (Tier: Fast-Track, Score: 91.1)
+  EMAIL Sneha Patel          (Tier: Fast-Track, Score: 88.3)
+  EMAIL Mike Chen            (Tier: Standard, Score: 83.4)
+  HOLD  Ravi Kumar           (Tier: Review - needs manual review)
+  SKIP  Priya Sharma         (Tier: Reject, Score: 40.8)
+  SKIP  Anonymous User       (Tier: Reject, Score: 3.6)
+
+----------------------------------------------------------------------
+  Sample Email: Initial Outreach to Arjun Mehta
+----------------------------------------------------------------------
+  | Hi Arjun,
+  | 
+  | Thank you for applying for the AI Agent Developer position. We'd like to learn more about your experience through a brief technical discussion.
+  | 
+  | Here's our first question:
+  | 
+  | What's a real-world system you've built that involved autonomous decision-making? Walk me through the architecture.
+  | 
+  | Take your time ΓÇö we value thoughtful responses over quick ones. Reply directly to this email.
+  | 
+  | Best,
+  | Hiring Team
+
+----------------------------------------------------------------------
+  Response Classification Demo
+----------------------------------------------------------------------
+  Input:    "I built a RAG pipeline using LangChain with FAISS for vector..."
+  Type:     technical (confidence: 0.60)
+  Action:   ask_deeper
+
+  Input:    "I am interested in AI and passionate about technology...."
+  Type:     vague (confidence: 0.70)
+  Action:   probe
+
+  Input:    "```python def score_candidate(data):     return sum(weights ..."
+  Type:     code_submission (confidence: 0.85)
+  Action:   evaluate_and_respond
+
+  Input:    "What tech stack does your team currently use?..."
+  Type:     question (confidence: 0.75)
+  Action:   answer_and_redirect
+
+  Input:    "ok..."
+  Type:     minimal (confidence: 0.95)
+  Action:   request_elaboration
+
+
+======================================================================
+  STEP 5: SELF-LEARNING ANALYSIS
+======================================================================
+  Score Distribution:
+    Mean:   61.9
+    Min:    3.6
+    Max:    91.1
+    Median: 83.4
+
+  Tier breakdown:
+    Fast-Track   2 ##########
+    Standard     1 #####
+    Review       1 #####
+    Reject       2 ##########
+
+----------------------------------------------------------------------
+  Weight Adjustment Recommendation
+----------------------------------------------------------------------
+  Current weights vs. Recommended weights:
+  Dimension                  Current      New    Delta
+  ------------------------- -------- -------- --------
+  technical_relevance          0.300   0.3204  +0.0204 ^
+  answer_quality               0.250   0.2427  -0.0073 v
+  profile_credibility          0.200   0.1942  -0.0058 v
+  specificity                  0.150   0.1456  -0.0044 v
+  timing                       0.100   0.0971  -0.0029 v
+
+  Reasoning: Many fast-track (33%) ΓÇö suggest increasing technical_relevance weight to raise bar
+
+======================================================================
+  PIPELINE SUMMARY
+======================================================================
+
+  Candidates processed:  6
+  Duplicates removed:    1 (c007)
+
+  Tier Results:
+    Fast-Track   2  (Arjun Mehta, Sneha Patel)
+    Standard     1  (Mike Chen)
+    Review       1  (Ravi Kumar)
+    Reject       2  (Priya Sharma, Anonymous User)
+
+  Anti-Cheat Findings:
+    Copy detected:    c001 <-> c003 on Q1 (similarity = 1.00)
+    Timing anomaly:   c005 (3 second response = likely paste)
+    Timing suspicion: c002 (15s, 6.9 words/sec > typing speed)
+
+  Emails to send:     3
+  Held for review:    1
+  Auto-rejected:      2
+
+======================================================================
+  PIPELINE COMPLETE
+======================================================================

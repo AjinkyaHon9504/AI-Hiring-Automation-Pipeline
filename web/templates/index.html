@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTHR - AI Hiring Automation</title>
+    <!-- Tailwind CSS (as requested in instructions, vanilla CSS is preferred but complex dashboards often use Tailwind. I'll use vanilla CSS to strictly follow instructions) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dark-theme">
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>GTHR</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-tab="candidates">
+                    <i class="fa-solid fa-users"></i> Candidates
+                </a>
+                <a href="#" class="nav-item" data-tab="anti-cheat">
+                    <i class="fa-solid fa-shield-halved"></i> Anti-Cheat
+                </a>
+                <a href="#" class="nav-item" data-tab="engagement">
+                    <i class="fa-solid fa-envelope"></i> Engagement
+                </a>
+                <a href="#" class="nav-item" data-tab="learning">
+                    <i class="fa-solid fa-brain"></i> Learning
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="runPipelineBtn" class="btn btn-primary pulse">
+                    <i class="fa-solid fa-play"></i> Run Pipeline
+                </button>
+                <div class="upload-section">
+                    <label for="csvUpload" class="upload-label">
+                        <i class="fa-solid fa-upload"></i> Upload CSV
+                    </label>
+                    <input type="file" id="csvUpload" accept=".csv, .xlsx" hidden>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-nav">
+                <div class="page-title">
+                    <h1 id="currentTabTitle">Pipeline Dashboard</h1>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot idle" id="pipelineStatusDot"></span>
+                    <span id="pipelineStatusText">System Idle</span>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Pipeline Progress (Visible during run) -->
+                <div id="pipelineProgress" class="pipeline-progress hidden">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <div class="steps-container">
+                        <div class="step" id="step-ingestion">
+                            <div class="step-icon"><i class="fa-solid fa-file-import"></i></div>
+                            <span>Ingestion</span>
+                        </div>
+                        <div class="step" id="step-scoring">
+                            <div class="step-icon"><i class="fa-solid fa-star"></i></div>
+                            <span>Scoring</span>
+                        </div>
+                        <div class="step" id="step-anticheat">
+                            <div class="step-icon"><i class="fa-solid fa-shield"></i></div>
+                            <span>Anti-Cheat</span>
+                        </div>
+                        <div class="step" id="step-engagement">
+                            <div class="step-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+                            <span>Engagement</span>
+                        </div>
+                        <div class="step" id="step-learning">
+                            <div class="step-icon"><i class="fa-solid fa-lightbulb"></i></div>
+                            <span>Learning</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Contents -->
+                <!-- Dashboard Tab -->
+                <div id="tab-dashboard" class="tab-pane active">
+                    <div class="stats-grid">
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon text-blue"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Candidates</span>
+                                <h2 class="stat-value" id="statTotalCandidates">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon text-green"><i class="fa-solid fa-rocket"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Fast-Tracked</span>
+                                <h2 class="stat-value" id="statFastTrack">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon text-red"><i class="fa-solid fa-user-slash"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Rejected</span>
+                                <h2 class="stat-value" id="statRejected">0</h2>
+                            </div>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <div class="stat-icon text-yellow"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="stat-info">
+                                <span class="stat-label">Cheat Flags</span>
+                                <h2 class="stat-value" id="statFlags">0</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-rows">
+                        <!-- Top Candidates -->
+                        <div class="panel list-panel glass-panel">
+                            <div class="panel-header">
+                                <h3>Top Candidates</h3>
+                                <button class="btn-icon"><i class="fa-solid fa-ellipsis"></i></button>
+                            </div>
+                            <div class="panel-body">
+                                <ul class="candidate-list" id="topCandidatesList">
+                                    <li class="empty-state">Run pipeline to see results</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- System Insights -->
+                        <div class="panel insights-panel glass-panel">
+                            <div class="panel-header">
+                                <h3>Latest Insights</h3>
+                                <i class="fa-solid fa-brain text-purple"></i>
+                            </div>
+                            <div class="panel-body" id="dashboardInsights">
+                                <div class="empty-state">No insights generated yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Candidates Tab -->
+                <div id="tab-candidates" class="tab-pane">
+                    <div class="panel full-height glass-panel">
+                        <div class="panel-header">
+                            <h3>All Evaluated Candidates</h3>
+                            <div class="filter-group">
+                                <select id="tierFilter" class="select-input">
+                                    <option value="all">All Tiers</option>
+                                    <option value="Fast-Track">Fast-Track</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Review">Review</option>
+                                    <option value="Reject">Reject</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Score</th>
+                                        <th>Tier</th>
+                                        <th>Tech</th>
+                                        <th>Flags</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="candidatesTableBody">
+                                    <tr><td colspan="6" class="text-center">No data available</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Anti-Cheat Tab -->
+                <div id="tab-anti-cheat" class="tab-pane">
+                     <div class="panel glass-panel">
+                        <div class="panel-header">
+                            <h3>Anti-Cheat Analysis</h3>
+                        </div>
+                        <div class="panel-body" id="antiCheatContent">
+                             <div class="empty-state">Run pipeline to review anti-cheat analysis</div>
+                        </div>
+                    </div>
+                </div>
+                
+                 <!-- Engagement Tab -->
+                <div id="tab-engagement" class="tab-pane">
+                     <div class="panel glass-panel">
+                        <div class="panel-header">
+                            <h3>Email Engagement</h3>
+                        </div>
+                        <div class="panel-body" id="engagementContent">
+                             <div class="empty-state">Run pipeline to view engagement metrics</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Learning Tab -->
+                <div id="tab-learning" class="tab-pane">
+                     <div class="panel glass-panel">
+                        <div class="panel-header">
+                            <h3>System Learning & Weight Adjustments</h3>
+                        </div>
+                        <div class="panel-body" id="learningContent">
+                             <div class="empty-state">Run pipeline to view learning insights</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Candidate Detail Modal -->
+    <div id="candidateModal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="modalCandidateName">Candidate Name</h2>
+                <span class="badge" id="modalCandidateTier">Tier</span>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body" id="modalCandidateDetails">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
